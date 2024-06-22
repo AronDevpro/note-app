@@ -1,5 +1,10 @@
 import {userModel} from "../models/user.model.js";
+import bcrypt from "bcrypt";
+import {generateToken} from "../utils/jwtUtils.js";
+import {verifyToken} from "../utils/authMiddleware.js";
 
+
+const saltRounds = 10;
 // function to get all the users
 export const getAllUsers = async (req, res) => {
     try {
@@ -26,19 +31,41 @@ export const getAllUsers = async (req, res) => {
 //function to save user
 export const saveUser = async (req,res) => {
     try {
-        const user = new userModel(req.body);
-        await user.save();
-        return res.status(200).json({
+        const { name, email, password } = req.body;
+
+        // Validate input
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
+
+        // Hash the password
+        const hash = await bcrypt.hash(password, saltRounds);
+
+        // Create a new user instance
+        const newUser = new userModel({
+            name,
+            email,
+            password: hash,
+        });
+
+        // Save the user to the database
+        await newUser.save();
+
+        // Respond with success
+        return res.status(201).json({
             success: true,
-            message: "user saved!",
-        })
+            message: "User saved!",
+        });
 
     } catch (e) {
         // Handle duplicate key error
         if (e.code === 11000) {
             return res.status(400).json({
                 success: false,
-                message: "Duplicate field value: email already exists",
+                message: "User already exists",
             });
         }
 
@@ -64,12 +91,23 @@ export const loginUser = async (req, res) => {
 
         // Find user by email
         const user = await userModel.findOne({ email });
-        if (!user || user.password !== password) {
+        if (!user) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email or password",
             });
         }
+
+        // Compare the provided password with the stored hashed password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        const token = generateToken(user)
 
         // Respond with success
         return res.status(200).json({
@@ -80,7 +118,8 @@ export const loginUser = async (req, res) => {
                 email: user.email,
                 name: user.name,
                 status: user.status,
-            }
+            },
+            token: token
         });
 
     } catch (e) {
@@ -90,3 +129,28 @@ export const loginUser = async (req, res) => {
         });
     }
 };
+
+export const refreshToken = (req,res)=>{
+    try {
+        const decodedToken = verifyToken(req.body.token);
+        const user = userModel.findById(decodedToken._id);
+        if (!user){
+            return res.status(400).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        const newToken = generateToken(user);
+
+        return res.status(200).json({
+            success: true,
+            message: "refresh token created",
+            token: newToken
+        });
+    } catch (err){
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+}

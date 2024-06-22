@@ -38,7 +38,7 @@ function Login() {
     const onSubmit = async (data) => {
         try {
             const response = await axios.post(`${users}/login`, data);
-            login(response.data.user);
+            login(response.data.user, response.data.token);
             return navigate("/dashboard");
 
         } catch (error) {

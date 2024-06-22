@@ -110,7 +110,7 @@ function Dashboard() {
     const [show, setShow] = useState(false);
     const [currentNote, setCurrentNote] = useState(null);
 
-    const { user } = useSession();
+    const { user, token } = useSession();
 
     const schema = z.object({
         title: z.string().nonempty("Title is required"),
@@ -141,7 +141,12 @@ function Dashboard() {
     const fetchNotes = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${notes}/${user.id}`);
+            const response = await axios.get(`${notes}/${user.id}`,{
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
             setNotesList(response.data.data);
         } catch (error) {
             console.error("Error fetching notes:", error);
@@ -157,7 +162,12 @@ function Dashboard() {
     const addNote = async (data) => {
         try {
             const updatedData = { ...data, userId: user.id };
-            await axios.post(notes, updatedData);
+            await axios.post(notes, updatedData,{
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
             toast.success('Note Saved Successfully', {
                 position: "top-right",
                 autoClose: 3000,
@@ -184,7 +194,12 @@ function Dashboard() {
     const updateNote = async (data) => {
         try {
             const updatedData = { title: data.updatedTitle, content: data.updatedContent };
-            await axios.put(`${notes}/${currentNote._id}`, updatedData);
+            await axios.put(`${notes}/${currentNote._id}`, updatedData,{
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
             toast.success('Note Updated Successfully', {
                 position: "top-right",
                 autoClose: 3000,
@@ -207,7 +222,12 @@ function Dashboard() {
 
     const handleDelete = async (noteId) => {
         try {
-            await axios.delete(`${notes}/${noteId}`);
+            await axios.delete(`${notes}/${noteId}`,{
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
             toast.success('Note Deleted Successfully', {
                 position: "top-right",
                 autoClose: 3000,

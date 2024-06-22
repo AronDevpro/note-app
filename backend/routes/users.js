@@ -1,5 +1,5 @@
 import express from 'express';
-import {getAllUsers, loginUser, saveUser} from "../controllers/UserController.js";
+import {getAllUsers, loginUser, refreshToken, saveUser} from "../controllers/UserController.js";
 
 
 //creating a router
@@ -12,6 +12,8 @@ router.get('/', getAllUsers);
 router.post('/register',saveUser);
 
 //api to login user
-router.post('/login',loginUser)
+router.post('/login',loginUser);
+
+router.post('/refresh-token', refreshToken)
 
 export default router;
